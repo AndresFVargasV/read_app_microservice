@@ -1,12 +1,14 @@
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify, make_response, Response
+from bson import json_util
 import json
-from datetime import date
-import base64 
-import dbconfig as db
+from io import BytesIO
+import base64
+from PIL import Image
+import dbconfig as dbase
+from flask_cors import CORS
 
-
-
-app = Flask(__name__) 
+app = Flask(__name__)
+CORS(app)
 
 @app.route('/api', methods=['GET'])
 def api():
@@ -14,30 +16,30 @@ def api():
 
 @app.route('/api/get', methods=['GET'])
 def get():
-    conn = db.get_connection()
-    if conn == None:
-        return jsonify({'msg': 'No se pudo conectar a la base de datos'})
-    cursor = conn.cursor() 
-    cursor.execute('SELECT * FROM Personas')
-    data = cursor.fetchall()
-    column_names = [column[0] for column in cursor.description]
-    results = []
-    
-    for row in data:
-        result_row = {}
-        for i, value in enumerate(row):
-            if isinstance(value, date):
-                result_row[column_names[i]] = value.strftime('%Y-%m-%d')
-            elif isinstance(value, bytes): 
-                result_row[column_names[i]] = base64.b64encode(value).decode() 
-            else:
-                result_row[column_names[i]] = value
-        results.append(result_row)
+    # Ejemplo de uso
+    conexion = dbase.establecer_conexion()
 
-    json_data = json.dumps(results)
-    cursor.close()
-    conn.close()
-    return jsonify(json_data)
+    # Verifica si la conexión fue exitosa
+    if conexion:
+        # Selecciona la base de datos y la colección
+        db, collection = dbase.seleccionar_bd_y_coleccion(conexion, "crud", "crudmicroservices")
+
+        usuarios = collection.find()
+
+        # Lista para almacenar la información de los usuarios con imágenes decodificadas
+        usuarios_con_imagenes = []
+
+        for usuario in usuarios:
+            usuario['_id'] = str(usuario['_id'])
+            usuarios_con_imagenes.append(usuario)
+
+        # Cierra la conexión al finalizar
+        dbase.cerrar_conexion(conexion)
+
+        # Devuelve la respuesta JSON después de la iteración
+        return Response(json.dumps({'usuarios': usuarios_con_imagenes}, default=json_util.default), mimetype='application/json')
+    else:
+        return make_response(jsonify({'error': 'No se pudo establecer la conexión con MongoDB'}), 500)
 
 if __name__ == '__main__':
     app.run(debug=True)
