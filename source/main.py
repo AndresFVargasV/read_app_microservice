@@ -42,4 +42,4 @@ def get():
         return make_response(jsonify({'error': 'No se pudo establecer la conexión con MongoDB'}), 500)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
