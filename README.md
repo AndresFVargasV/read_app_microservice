@@ -1,4 +1,4 @@
-# Microservicio de CRUD con Flask
+# Modulo Read de CRUD con Flask
 
 Esta aplicación es una API construida con Flask que proporciona operaciones la opción de leer de un CRUD (Crear, Leer, Actualizar, Eliminar) para usuarios almacenados en una base de datos MongoDB. Está API es creada bajo la arquitectura de microservicios. La API permite a los usuarios realizar las siguientes acciones:
 
