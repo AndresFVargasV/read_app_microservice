@@ -1,11 +1,9 @@
 from flask import Flask, jsonify, make_response, Response
 from bson import json_util
 import json
-from io import BytesIO
-import base64
-from PIL import Image
 import dbconfig as dbase
 from flask_cors import CORS
+import functions as f
 
 # Inicializa la aplicación Flask
 app = Flask(__name__)
@@ -40,13 +38,23 @@ def get():
             usuario['_id'] = str(usuario['_id'])
             usuarios_id_string.append(usuario)
 
+        # Seleccionar la base de datos y la colección
+        db, collection_log = dbase.seleccionar_bd_y_coleccion(conexion, "crud", "microserviceslogs")
+
+        # Registrar el log
+        log_info = f.info_log(usuario.get('tipo_documento'), usuario.get('numero_documento'))
+        result = collection_log.insert_one(log_info)
+
         # Cierra la conexión al finalizar
         dbase.cerrar_conexion(conexion)
 
-        # Devuelve la respuesta JSON después de la iteración
-        return Response(json.dumps({'usuarios': usuarios_id_string}, default=json_util.default), mimetype='application/json')
+        if result.acknowledged:
+            # Devuelve la respuesta JSON después de la iteración
+            return Response(json.dumps({'usuarios': usuarios_id_string}, default=json_util.default), mimetype='application/json')
+        else:
+            # Devuelve la respuesta JSON teniendo en cuenta que la inserción del log falló
+            return make_response(jsonify({'error': 'No se pudo registrar el log'}), 500)
     else:
-
         # Devuelve la respuesta JSON teniendo en cuenta que la conexión no fue exitosa
         return make_response(jsonify({'error': 'No se pudo establecer la conexión con MongoDB'}), 500)
     
@@ -96,7 +104,7 @@ def get_logs():
     if conexion:
         
         # Selecciona la base de datos y la colección "logs"
-        db, collection = dbase.seleccionar_bd_y_coleccion(conexion, "crud", "logs")
+        db, collection = dbase.seleccionar_bd_y_coleccion(conexion, "crud", "microserviceslogs")
 
         # Busca todos los registros en la colección "logs"
         registros = collection.find()
