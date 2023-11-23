@@ -71,7 +71,7 @@ def get_one(id):
             db, collection_log = dbase.seleccionar_bd_y_coleccion(conexion, "crud", "microserviceslogs")
 
             # Registrar el log
-            log_info = f.info_log(usuario.get('tipo_documento'), usuario.get('numero_documento'))
+            log_info = f.info_log(usuario['tipo_documento'], usuario['numero_documento'])
             result = collection_log.insert_one(log_info)
 
 
