@@ -38,22 +38,11 @@ def get():
             usuario['_id'] = str(usuario['_id'])
             usuarios_id_string.append(usuario)
 
-        # Seleccionar la base de datos y la colección
-        db, collection_log = dbase.seleccionar_bd_y_coleccion(conexion, "crud", "microserviceslogs")
-
-        # Registrar el log
-        log_info = f.info_log(usuario.get('tipo_documento'), usuario.get('numero_documento'))
-        result = collection_log.insert_one(log_info)
-
         # Cierra la conexión al finalizar
         dbase.cerrar_conexion(conexion)
 
-        if result.acknowledged:
-            # Devuelve la respuesta JSON después de la iteración
-            return Response(json.dumps({'usuarios': usuarios_id_string}, default=json_util.default), mimetype='application/json')
-        else:
-            # Devuelve la respuesta JSON teniendo en cuenta que la inserción del log falló
-            return make_response(jsonify({'error': 'No se pudo registrar el log'}), 500)
+        # Devuelve la respuesta JSON después de la iteración
+        return Response(json.dumps({'usuarios': usuarios_id_string}, default=json_util.default), mimetype='application/json')
     else:
         # Devuelve la respuesta JSON teniendo en cuenta que la conexión no fue exitosa
         return make_response(jsonify({'error': 'No se pudo establecer la conexión con MongoDB'}), 500)
@@ -68,21 +57,34 @@ def get_one(id):
     if conexion:
 
         # Selecciona la base de datos y la colección
-        db, collection = dbase.seleccionar_bd_y_coleccion(conexion, "crud", "crudmicroservices")
+        db, collection_person = dbase.seleccionar_bd_y_coleccion(conexion, "crud", "crudmicroservices")
 
         # Busca el usuario por su número de documento
-        usuario = collection.find_one({'numero_documento': id})
+        usuario = collection_person.find_one({'numero_documento': id})
 
         # Verifica si el usuario existe
         if usuario:
             # Tomamos el id del usuario dado por mongodb y lo convertimos a string para poder serializarlo
             usuario['_id'] = str(usuario['_id'])
 
+            # Seleccionar la base de datos y la colección
+            db, collection_log = dbase.seleccionar_bd_y_coleccion(conexion, "crud", "microserviceslogs")
+
+            # Registrar el log
+            log_info = f.info_log(usuario.get('tipo_documento'), usuario.get('numero_documento'))
+            result = collection_log.insert_one(log_info)
+
+
             # Cierra la conexión al finalizar
             dbase.cerrar_conexion(conexion)
 
-            # Devuelve la respuesta JSON
-            return Response(json.dumps({'usuario': usuario}, default=json_util.default), mimetype='application/json')
+
+            if result:
+                # Devuelve la respuesta JSON
+                return Response(json.dumps({'usuario': usuario}, default=json_util.default), mimetype='application/json')
+            else:
+                # Devuelve la respuesta JSON teniendo en cuenta que no se pudo registrar el log
+                return make_response(jsonify({'error': 'No se pudo registrar el log'}), 500)      
         else:
             # Cierra la conexión al finalizar
             dbase.cerrar_conexion(conexion)
